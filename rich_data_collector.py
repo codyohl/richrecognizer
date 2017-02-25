@@ -8,17 +8,18 @@ import datetime
 import threading 
 import random
 
+# thresholds defined as volume to consider between words.
 different_thresholds = [1200, 1500, 1700, 1900, 2200]
-THRESHOLD = 1500
+volume_threshold = 1500
 CHUNK_SIZE = 1024
 FORMAT = pyaudio.paInt16
 RATE = 44100
-SILENCE_LENGTH = 1 # number of consecutive 'silent' chunks before we decide to cut the word.
+SILENCE_LENGTH = 1 # number of consecutive 'silent' audio chunks before we decide to cut the word.
 WAIT_FOR_SND = 3 # number of samples we should 'keep' after the silence is detected (keeps a dying off voice)
 
 def is_silent(snd_data):
     "Returns 'True' if below the 'silent' threshold"
-    return max(snd_data) < THRESHOLD
+    return max(snd_data) < volume_threshold
 
 def normalize(snd_data):
     "Average the volume out"
@@ -37,7 +38,7 @@ def trim(snd_data):
         r = array('h')
 
         for i in snd_data:
-            if not snd_started and abs(i)>THRESHOLD:
+            if not snd_started and abs(i)>volume_threshold:
                 snd_started = True
                 r.append(i)
 
@@ -101,10 +102,11 @@ def record(stream):
     # format the data to be normalized and trimmed.
     r = normalize(r)
     r = trim(r)
-    # randomly adds silence and silence thresholds on the data.
+    # randomly adds silence and silence thresholds on 20 percent of the data.
+    # this helps varying amounts of silence to sounds and still classifying them correctly
     if random.random() < 0.2:
         r = add_silence(r, 0.2)
-    THRESHOLD = random.choice(different_thresholds)
+    volume_threshold = random.choice(different_thresholds)
     return sample_width, r
 
 def record_to_file(path, stream):
