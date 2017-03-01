@@ -64,13 +64,14 @@ def extract_feature(file_name):
 def build_features_from_files(sub_dir,file_ext="*.wav"):
     features = []
     for filename in glob.glob(os.path.join(sub_dir, file_ext)):
-        # print(fn)
+        print(filename)
         try:
             mfccs, chroma, mel, contrast,tonnetz = extract_feature(filename)
         except Exception as e:
             print("Error encountered while parsing file: ", filename)
             continue
         features.append(np.array(np.append(mfccs.ravel(), np.append(chroma.ravel(), np.append(mel.ravel(), np.append(contrast.ravel(),tonnetz.ravel()))))))
+        # features.append(np.array(mel.ravel()))
     return np.array(features)
 
 label_map = {'rich': 1, 'notrich': 0}
@@ -90,11 +91,12 @@ all_training_data = np.delete(all_training_data,-1,1)
 
 y_train = np.concatenate((y_train, (y_train - 1) * -1), axis=1)
 
-y_test = y_train[int(len(y_train) * 0.8):, :]
-y_train = y_train[:int(len(y_train) * 0.8), :]
-
-x_test = all_training_data[int(len(all_training_data) * 0.8):, :]
-all_training_data = all_training_data[:int(len(all_training_data) * 0.8), :]
+train_test_split = 0.7
+print(len(y_train), len(all_training_data))
+y_test = y_train[int(len(y_train) * train_test_split):, :]
+y_train = y_train[:int(len(y_train) * train_test_split), :]
+x_test = all_training_data[int(len(all_training_data) * train_test_split):, :]
+all_training_data = all_training_data[:int(len(all_training_data) * train_test_split), :]
 
 def plot_examples():
     sound_file_paths = ["rich/2017-02-20 18_25_41560224.wav","notrich/2017-02-20 17_52_54758949.wav"]
@@ -107,13 +109,13 @@ def plot_examples():
 # plot_examples()
 
 # configuration parameters required by neural network model
-training_epochs = 50
+training_epochs = 100
 n_dim = all_training_data.shape[1]
 n_classes = 2
 n_hidden_units_one = 280
 n_hidden_units_two = 300
 sd = 1 / np.sqrt(n_dim)
-learning_rate = 0.01
+learning_rate = 0.001
 
 # placeholders for features and class labels, which tensor flow will fill with the data at runtime
 X = tf.placeholder(tf.float32,[None,n_dim])
@@ -130,7 +132,7 @@ h_2 = tf.nn.sigmoid(tf.matmul(h_1,W_2) + b_2)
 
 W = tf.Variable(tf.random_normal([n_hidden_units_two,n_classes], mean = 0, stddev=sd))
 b = tf.Variable(tf.random_normal([n_classes], mean = 0, stddev=sd))
-y_ = tf.nn.softmax(tf.matmul(h_2,W) + b)
+y_ = tf.nn.sigmoid(tf.matmul(h_2,W) + b)
 
 init = tf.initialize_all_variables()
 
@@ -144,6 +146,8 @@ accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 # train neural network model, visualise whether cost is decreasing with each epoch and make prediction on the test set
 cost_history = np.empty(shape=[1],dtype=float)
 y_true, y_pred = None, None
+
+accuracies = []
 with tf.Session() as sess:
     sess.run(init)
     for epoch in range(training_epochs):
@@ -151,14 +155,31 @@ with tf.Session() as sess:
         _,cost = sess.run([optimizer,cost_function],feed_dict={X:all_training_data,Y:y_train})
         cost_history = np.append(cost_history,cost)
     
-    y_pred = sess.run(tf.argmax(y_,1),feed_dict={X: x_test})
-    y_true = sess.run(tf.argmax(y_test,1))
-    print("Test accuracy: ",round(sess.run(accuracy, 
-    	feed_dict={X: x_test,Y: y_test}),3))
+        print('train data:')
+        y_pred = sess.run(tf.argmax(y_,1),feed_dict={X: all_training_data})
+        y_true = sess.run(tf.argmax(y_train,1))
+        print('num actual true: ', sum(y_true), 'num predicted true:', sum(y_pred), 'total:', len(all_training_data))
+        acc = round(sess.run(accuracy, feed_dict={X: all_training_data,Y: y_train}),3)
+        print("Test accuracy: ",acc)
+
+
+        print('test data:')
+        y_pred = sess.run(tf.argmax(y_,1),feed_dict={X: x_test})
+        y_true = sess.run(tf.argmax(y_test,1))
+        print('num actual true: ', sum(y_true), 'num predicted true:', sum(y_pred), 'total:', len(x_test))
+        # print(sum((y_true - y_pred) ** 2) / float(len(y_pred)))
+        acc = round(sess.run(accuracy, feed_dict={X: x_test,Y: y_test}),3)
+        print("Test accuracy: ",acc)
+        accuracies.append(acc)
 
 fig = plt.figure(figsize=(10,8))
-plt.plot(cost_history)
-plt.axis([0,training_epochs,0,np.max(cost_history)])
+ax = fig.add_subplot(211)
+ax.plot(cost_history)
+ax.axis([0,training_epochs,0,np.max(cost_history)])
+
+ax = fig.add_subplot(212)
+ax.plot(accuracies)
+ax.axis([0,training_epochs,0,np.max(accuracies)])
 plt.show()
 
 p,r,f,s = precision_recall_fscore_support(y_true, y_pred, average="micro")
