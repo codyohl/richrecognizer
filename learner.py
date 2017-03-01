@@ -109,13 +109,13 @@ def plot_examples():
 # plot_examples()
 
 # configuration parameters required by neural network model
-training_epochs = 100
+training_epochs = 200
 n_dim = all_training_data.shape[1]
 n_classes = 2
 n_hidden_units_one = 280
 n_hidden_units_two = 300
 sd = 1 / np.sqrt(n_dim)
-learning_rate = 0.001
+learning_rate = 0.0001
 
 # placeholders for features and class labels, which tensor flow will fill with the data at runtime
 X = tf.placeholder(tf.float32,[None,n_dim])
@@ -167,7 +167,6 @@ with tf.Session() as sess:
         y_pred = sess.run(tf.argmax(y_,1),feed_dict={X: x_test})
         y_true = sess.run(tf.argmax(y_test,1))
         print('num actual true: ', sum(y_true), 'num predicted true:', sum(y_pred), 'total:', len(x_test))
-        # print(sum((y_true - y_pred) ** 2) / float(len(y_pred)))
         acc = round(sess.run(accuracy, feed_dict={X: x_test,Y: y_test}),3)
         print("Test accuracy: ",acc)
         accuracies.append(acc)
@@ -179,7 +178,7 @@ ax.axis([0,training_epochs,0,np.max(cost_history)])
 
 ax = fig.add_subplot(212)
 ax.plot(accuracies)
-ax.axis([0,training_epochs,0,np.max(accuracies)])
+ax.axis([0,training_epochs,0,np.max(accuracies) + 0.1])
 plt.show()
 
 p,r,f,s = precision_recall_fscore_support(y_true, y_pred, average="micro")
