@@ -147,7 +147,7 @@ accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 cost_history = np.empty(shape=[1],dtype=float)
 y_true, y_pred = None, None
 
-accuracies = []
+test_accuracies, train_accuracies = [], []
 with tf.Session() as sess:
     sess.run(init)
     for epoch in range(training_epochs):
@@ -160,8 +160,8 @@ with tf.Session() as sess:
         y_true = sess.run(tf.argmax(y_train,1))
         print('num actual true: ', sum(y_true), 'num predicted true:', sum(y_pred), 'total:', len(all_training_data))
         acc = round(sess.run(accuracy, feed_dict={X: all_training_data,Y: y_train}),3)
-        print("Test accuracy: ",acc)
-
+        print("train accuracy: ",acc)
+        train_accuracies.append(acc)
 
         print('test data:')
         y_pred = sess.run(tf.argmax(y_,1),feed_dict={X: x_test})
@@ -169,7 +169,7 @@ with tf.Session() as sess:
         print('num actual true: ', sum(y_true), 'num predicted true:', sum(y_pred), 'total:', len(x_test))
         acc = round(sess.run(accuracy, feed_dict={X: x_test,Y: y_test}),3)
         print("Test accuracy: ",acc)
-        accuracies.append(acc)
+        test_accuracies.append(acc)
 
 fig = plt.figure(figsize=(10,8))
 ax = fig.add_subplot(211)
@@ -177,8 +177,9 @@ ax.plot(cost_history)
 ax.axis([0,training_epochs,0,np.max(cost_history)])
 
 ax = fig.add_subplot(212)
-ax.plot(accuracies)
-ax.axis([0,training_epochs,0,np.max(accuracies) + 0.1])
+ax.plot(test_accuracies, 'r')
+ax.plot(train_accuracies, 'b')
+ax.axis([0,training_epochs,0,max(np.max(test_accuracies), np.max(train_accuracies) )+ 0.1])
 plt.show()
 
 p,r,f,s = precision_recall_fscore_support(y_true, y_pred, average="micro")
