@@ -9,6 +9,7 @@ from matplotlib.pyplot import specgram
 
 from librosa import display
 from PIL import Image
+import winsound
 
 def load_sound_files(file_paths):
     raw_sounds = []
@@ -170,12 +171,17 @@ def prompt_for_file(trained_model, input_layer, output_layer, labels):
         try:
             if filename in ['q', 'Q']:
                 break
+            # play the sound
+            winsound.PlaySound(filename, winsound.SND_FILENAME)
+
+            # predict the class
             mfccs, chroma, mel, contrast,tonnetz = extract_feature(filename)
             feature_array = np.array(np.append(mfccs.ravel(), np.append(chroma.ravel(), np.append(mel.ravel(), np.append(contrast.ravel(),tonnetz.ravel())))))
             input_x = np.array([feature_array]) # feature_array.reshape(len(feature_array), 1)
             prediction = trained_model.run(tf.argmax(output_layer,1),feed_dict={input_layer: input_x})[0]
             print('prediction:', labels[prediction])
 
+            # display a picture
             if labels[prediction] == 'rich':
                 rich.show()
             else:
