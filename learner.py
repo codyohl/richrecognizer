@@ -197,9 +197,12 @@ if __name__ == '__main__':
     """
     Main Program gathers wav files and uses a feedforward neural network to classify and predict whether a specific name was heard.
     """
+    random_seed = 15234 # 1020
+    np.random.seed(random_seed)
+    tf.set_random_seed(random_seed)
 
     print('Plotting examples...')
-    plot_examples()
+    # plot_examples()
 
     print('Gathering data...')
     label_map = {'rich': 1, 'notrich': 0}
@@ -252,7 +255,7 @@ if __name__ == '__main__':
         learning_rate = learning_rate)
 
     print('Plotting results...')
-    plot_results(training_epochs, cost_history, test_accuracies, train_accuracies) # plots results
+    # plot_results(training_epochs, cost_history, test_accuracies, train_accuracies) # plots results
 
     # learns F score
     p,r,f,s = precision_recall_fscore_support(y_true, y_pred, average="micro")
